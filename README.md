@@ -113,7 +113,7 @@ The focal point is stored as `x` and `y` coordinates, expressed as percentages o
 ### Map
 
 The image map is stored as an array of areas. `shape` is either `rect` or `poly`, `chords` contains the area's
-coordinates in the original image, and `href` and `alt` hold the area's link and alternative text.
+coordinates relative to the cropped output image, and `href` and `alt` hold the area's link and alternative text.
 
 ```json
 [

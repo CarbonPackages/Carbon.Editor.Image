@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import * as stylex from "@stylexjs/stylex";
 import backend from "@neos-project/neos-ui-backend-connector";
 import { Button, IconButton, Label, TextInput } from "@neos-project/react-ui-components";
@@ -10,7 +10,7 @@ import {
     boundsFromPoints,
     ShapeType,
 } from "@annotorious/react";
-import { injectNeosProps, getImageIdentity } from "../Helper";
+import { injectNeosProps, getImageIdentity, createThumbnail } from "../Helper";
 import Dialog from "carbon-neos-editor-styling/Dialog";
 
 const styles = stylex.create({
@@ -35,10 +35,25 @@ const styles = stylex.create({
         justifyContent: "center",
         backgroundColor: "black",
         padding: 13,
+        overflow: "clip",
+    },
+    imageViewport: {
+        position: "relative",
+        width: "var(--crop-area-width, 0)",
+        height: "var(--crop-area-height, 0)",
+        overflow: "hidden",
+    },
+    annotator: {
+        width: "var(--thumbnail-width, 0)",
+        height: "var(--thumbnail-height, 0)",
+        left: "var(--thumbnail-left, 0)",
+        top: "var(--thumbnail-top, 0)",
     },
     image: {
         display: "block",
-        maxWidth: "100%",
+        width: "100%",
+        height: "100%",
+        pointerEvents: "none",
     },
     deleteAllButton: {
         marginLeft: "auto",
@@ -74,12 +89,11 @@ function parseAreas(value) {
     return Array.isArray(value) ? value : [];
 }
 
-// Converts a stored image map area (coords in original image space) into an
-// annotorious annotation (coords in preview image space)
-function areaToAnnotation(area, scalingFactor, index) {
+// Converts an area relative to the cropped output into preview image coordinates.
+function areaToAnnotation(area, previewScale, cropOffset, index) {
     const coords = (area.chords || "")
         .split(",")
-        .map((part) => parseFloat(part) * scalingFactor)
+        .map((part, index) => parseFloat(part) * previewScale + (index % 2 === 0 ? cropOffset.x : cropOffset.y))
         .filter((number) => !isNaN(number));
     const id = `area-${index}-${Math.random().toString(36).slice(2)}`;
 
@@ -118,13 +132,16 @@ function areaToAnnotation(area, scalingFactor, index) {
     };
 }
 
-// Converts annotorious annotations (preview image space) back into image map
-// areas (original image space)
-function annotationsToAreas(annotations, areaData, scalingFactor) {
+// Converts preview image coordinates into coordinates relative to the cropped output.
+function annotationsToAreas(annotations, areaData, previewScale, cropOffset) {
     return annotations
         .map((annotation) => {
             const { selector } = annotation.target;
-            const scale = (value) => Math.round(value / scalingFactor);
+            let coordinateIndex = 0;
+            const scale = (value) => {
+                const offset = coordinateIndex++ % 2 === 0 ? cropOffset.x : cropOffset.y;
+                return Math.round((value - offset) / previewScale);
+            };
             let shape = null;
             let coords = [];
 
@@ -191,6 +208,7 @@ function AreaPopup({ annotation, areaData, setAreaData, onDelete, LinkEditor, li
 function MapDialogContent({
     image,
     initialAnnotations,
+    thumbnail,
     annoRef,
     areaData,
     setAreaData,
@@ -200,6 +218,14 @@ function MapDialogContent({
 }) {
     const anno = useAnnotator();
     const [tool, setTool] = useState(null);
+    const imageStyle = {
+        "--crop-area-width": thumbnail.styles.cropArea.width,
+        "--crop-area-height": thumbnail.styles.cropArea.height,
+        "--thumbnail-width": thumbnail.styles.thumbnail.width,
+        "--thumbnail-height": thumbnail.styles.thumbnail.height,
+        "--thumbnail-left": thumbnail.styles.thumbnail.left,
+        "--thumbnail-top": thumbnail.styles.thumbnail.top,
+    };
 
     useEffect(() => {
         if (!anno) {
@@ -248,18 +274,26 @@ function MapDialogContent({
                 <span {...stylex.props(styles.hint)}>
                     {i18nRegistry.translate("Carbon.Editor.Image:Main:map.hint")}
                 </span>
-                <Button size="small" hoverStyle="warn" onClick={deleteAllAreas} className={stylex.props(styles.deleteAllButton).className}>
+                <Button
+                    size="small"
+                    hoverStyle="warn"
+                    onClick={deleteAllAreas}
+                    className={stylex.props(styles.deleteAllButton).className}
+                >
                     {i18nRegistry.translate("Carbon.Editor.Image:Main:map.deleteAll")}
                 </Button>
             </div>
             <div {...stylex.props(styles.imageWrapper)}>
-                <ImageAnnotator
-                    tool={tool || undefined}
-                    drawingEnabled={Boolean(tool)}
-                    drawingMode={tool === "polygon" ? "click" : "drag"}
-                >
-                    <img src={image.previewImageResourceUri} alt="" className={stylex.props(styles.image).className} />
-                </ImageAnnotator>
+                <div {...stylex.props(styles.imageViewport)} style={imageStyle}>
+                    <ImageAnnotator
+                        containerClassName={stylex.props(styles.annotator).className}
+                        tool={tool || undefined}
+                        drawingEnabled={Boolean(tool)}
+                        drawingMode={tool === "polygon" ? "click" : "drag"}
+                    >
+                        <img src={image.previewImageResourceUri} alt="" {...stylex.props(styles.image)} />
+                    </ImageAnnotator>
+                </div>
             </div>
             <ImageAnnotationPopup
                 popup={({ annotation }) => (
@@ -297,6 +331,10 @@ function MapEditor({
     const [areaData, setAreaData] = useState({});
     const annoRef = useRef(null);
     const imageIdentity = getImageIdentity(getNodeByContextPath, focusedNodePath, imageProperty);
+    const thumbnail = useMemo(
+        () => (image ? createThumbnail(image, image.previewDimensions.width, image.previewDimensions.height) : null),
+        [image],
+    );
 
     useEffect(() => {
         if (!imageIdentity) {
@@ -317,7 +355,13 @@ function MapEditor({
         };
     }, [imageIdentity]);
 
-    const scalingFactor = image ? image.previewDimensions.width / image.originalDimensions.width : 1;
+    const previewScale = image ? image.previewDimensions.width / image.originalDimensions.width : 1;
+    const cropOffset = thumbnail
+        ? {
+              x: -parseFloat(thumbnail.styles.thumbnail.left) / thumbnail.scalingFactor,
+              y: -parseFloat(thumbnail.styles.thumbnail.top) / thumbnail.scalingFactor,
+          }
+        : { x: 0, y: 0 };
     const areas = parseAreas(value);
     const LinkEditor = linkEditor ? editorsRegistry?.get(linkEditor)?.component : null;
 
@@ -332,7 +376,7 @@ function MapEditor({
         const annotations = [];
         const data = {};
         areas.forEach((area, index) => {
-            const annotation = areaToAnnotation(area, scalingFactor, index);
+            const annotation = areaToAnnotation(area, previewScale, cropOffset, index);
             if (annotation) {
                 annotations.push(annotation);
                 data[annotation.id] = { href: area.href || "", alt: area.alt || "" };
@@ -345,7 +389,7 @@ function MapEditor({
 
     function applyChanges() {
         const annotations = annoRef.current ? annoRef.current.getAnnotations() : [];
-        const result = annotationsToAreas(annotations, areaData, scalingFactor);
+        const result = annotationsToAreas(annotations, areaData, previewScale, cropOffset);
         commit(saveAsJsonString ? JSON.stringify(result) : result);
         setOpen(false);
     }
@@ -369,6 +413,7 @@ function MapEditor({
                         <MapDialogContent
                             image={image}
                             initialAnnotations={initialAnnotations}
+                            thumbnail={thumbnail}
                             annoRef={annoRef}
                             areaData={areaData}
                             setAreaData={setAreaData}
