@@ -4,8 +4,32 @@ const DEFAULT_OFFSET = { x: 0, y: 0 };
 
 export function createThumbnail(image, width, height) {
     const uri = getPreviewUri(image);
+    const previewDimensions = getPreviewDimensions(image);
+    const originalDimensions = image?.originalDimensions;
+    const hasDimensions = [
+        previewDimensions.width,
+        previewDimensions.height,
+        originalDimensions?.width,
+        originalDimensions?.height,
+    ].every((value) => Number.isFinite(value) && value > 0);
+
+    if (!hasDimensions) {
+        const dimensions = { width: "calc(100vw - 100px)", height: "auto" };
+        return {
+            uri,
+            scalingFactor: 1,
+            hasDimensions: false,
+            dimensions: previewDimensions,
+            cropDimensions: previewDimensions,
+            styles: {
+                thumbnail: { ...dimensions, left: "0px", top: "0px" },
+                cropArea: dimensions,
+            },
+        };
+    }
+
     const scalingFactor = getScalingFactor(image, width, height);
-    const dimensions = scaleDimensions(getPreviewDimensions(image), scalingFactor);
+    const dimensions = scaleDimensions(previewDimensions, scalingFactor);
     const cropDimensions = scaleDimensions(
         getPreviewCropAdjustment(image) ?? getPreviewDimensions(image),
         scalingFactor,
@@ -15,6 +39,7 @@ export function createThumbnail(image, width, height) {
     return {
         uri,
         scalingFactor,
+        hasDimensions: true,
         dimensions,
         cropDimensions,
         styles,

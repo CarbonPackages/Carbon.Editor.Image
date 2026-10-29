@@ -26,8 +26,14 @@
             <trans-unit id="map.alt" xml:space="preserve">
                 <source>Alternative text</source>
             </trans-unit>
+            <trans-unit id="map.title" xml:space="preserve">
+                <source>Title</source>
+            </trans-unit>
             <trans-unit id="map.delete" xml:space="preserve">
                 <source>Remove area</source>
+            </trans-unit>
+            <trans-unit id="map.close" xml:space="preserve">
+                <source>Close</source>
             </trans-unit>
             <trans-unit id="map.deleteAll" xml:space="preserve">
                 <source>Delete all areas</source>

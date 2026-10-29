@@ -22,6 +22,7 @@ const styles = stylex.create({
         width: "var(--crop-area-width, 0)",
         height: "var(--crop-area-height, 0)",
         padding: 13,
+        overflow: "clip",
         "::before": {
             content: '""',
             height: "100%",
@@ -46,6 +47,9 @@ const styles = stylex.create({
     focalPoint: {
         zIndex: 100,
     },
+    noPointerEvents: {
+        pointerEvents: "none",
+    },
     image: {
         position: "absolute",
         width: "var(--thumbnail-width, 0)",
@@ -58,7 +62,6 @@ const styles = stylex.create({
 const classes = {
     root: stylex.props(styles.editorWrapper).className,
     focalPoint: stylex.props(styles.focalPoint).className,
-    image: stylex.props(styles.image).className,
 };
 
 function mapThumbnailStylesToCustomProps(thumbnail) {
@@ -128,6 +131,7 @@ function FocalPointEditor({
     }
 
     const wrapperProps = stylex.props(styles.wrapper);
+    const imageClassName = stylex.props(thumbnail.hasDimensions && styles.image, styles.noPointerEvents).className;
     const currentFocalPoint = value ? (saveAsJsonString ? JSON.parse(value) : value) : undefined;
     const focalPoint = openInDialog ? draftFocalPoint : currentFocalPoint;
 
@@ -164,7 +168,7 @@ function FocalPointEditor({
             <ImageFocalPoint
                 focalPoint={focalPoint}
                 src={image.previewImageResourceUri}
-                classes={classes}
+                classes={{ ...classes, image: imageClassName }}
                 onChange={handleFocalPointChange}
             />
         </div>

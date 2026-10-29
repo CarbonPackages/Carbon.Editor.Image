@@ -69,8 +69,19 @@ Neos:
           imageProperty: "image"
           labelIfEmpty: "Carbon.Editor.Image:Main:selectImage"
           saveAsJsonString: false
-          linkEditor: "Neos.Neos/Inspector/Editors/LinkEditor"
-          linkEditorOptions: {}
+          areaProperties:
+            href:
+              label: "Carbon.Editor.Image:Main:map.link"
+              editor: "Neos.Neos/Inspector/Editors/LinkEditor"
+              editorOptions: {}
+            title:
+              label: "Carbon.Editor.Image:Main:map.title"
+              editor: "Neos.Neos/Inspector/Editors/TextFieldEditor"
+              editorOptions: {}
+            alt:
+              label: "Carbon.Editor.Image:Main:map.alt"
+              editor: "Neos.Neos/Inspector/Editors/TextFieldEditor"
+              editorOptions: {}
 ```
 
 These are global defaults. Set an option in a property's `editorOptions` to override the global value for that editor
@@ -78,14 +89,13 @@ instance.
 
 Available options:
 
-| Option              | Description                                                                                                                                                                    |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `imageProperty`     | Name of the image property used by the editor. Defaults to `image`. Use `parent:propertyName` to read the image from the parent node.                                          |
-| `labelIfEmpty`      | Text or translation key displayed when no image is selected. Set it to `null` to hide the editor output in that case.                                                          |
-| `saveAsJsonString`  | When `true`, stores the value as a JSON string; the Neos property must then have `type: string`. When `false`, the value is stored as a native value, so use `type: array`.    |
-| `openInDialog`      | FocalPoint editor only. When `true`, opens the focal point editor in a dialog like the Map editor. Changes are saved with Apply and discarded with Cancel. Defaults to `true`. |
-| `linkEditor`        | Map editor only. Identifier of the Neos inspector editor used to edit area links.                                                                                              |
-| `linkEditorOptions` | Map editor only. Options passed to the configured link editor.                                                                                                                 |
+| Option             | Description                                                                                                                                                                    |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `imageProperty`    | Name of the image property used by the editor. Defaults to `image`. Use `parent:propertyName` to read the image from the parent node.                                          |
+| `labelIfEmpty`     | Text or translation key displayed when no image is selected. Set it to `null` to hide the editor output in that case.                                                          |
+| `saveAsJsonString` | When `true`, stores the value as a JSON string; the Neos property must then have `type: string`. When `false`, the value is stored as a native value, so use `type: array`.    |
+| `openInDialog`     | FocalPoint editor only. When `true`, opens the focal point editor in a dialog like the Map editor. Changes are saved with Apply and discarded with Cancel. Defaults to `true`. |
+| `areaProperties`   | Map editor only. Named fields for each area, with a `label`, Neos `editor` identifier and `editorOptions`. Set a field to `null` to omit it from the popup and saved data.     |
 
 For example, to use a different image property only for one focal point field:
 
@@ -96,6 +106,27 @@ editorOptions:
 ```
 
 Property-level `editorOptions` take precedence over the corresponding global setting.
+
+### Custom area fields
+
+The Map editor creates its popup fields from `areaProperties`. By default, each area has `href`, `title` and `alt`
+fields. Add custom fields or override individual field definitions in your property's `editorOptions`:
+
+```yaml
+editorOptions:
+  areaProperties:
+    alt: null
+    description:
+      label: "Description"
+      editor: "Neos.Neos/Inspector/Editors/TextAreaEditor"
+      editorOptions:
+        placeholder: "Describe this area"
+```
+
+This keeps the global `href` and `title` fields, removes `alt`, and adds `description`. Each field definition replaces
+the global definition with the same name. Labels support translation keys, and `editorOptions` are passed to the
+selected Neos inspector editor. Fields are stored under their configured names alongside `shape` and `coords`; those two
+names are reserved. Disabled and unconfigured fields are not saved when applying changes.
 
 ## Stored data format
 
@@ -112,21 +143,25 @@ The focal point is stored as `x` and `y` coordinates, expressed as percentages o
 
 ### Map
 
-The image map is stored as an array of areas. `shape` is either `rect` or `poly`, `chords` contains the area's
-coordinates relative to the cropped output image, and `href` and `alt` hold the area's link and alternative text.
+The image map is stored as an array of areas. `shape` is either `rect` or `poly`, `coords` is an array of alternating
+`x` and `y` floating-point percentages relative to the cropped output image (from `0` to `100`). The remaining fields
+come from `areaProperties`, such as `href`, `title` and `alt`. X values are relative to the cropped width, Y values to
+the cropped height, independently of the preview size.
 
 ```json
 [
   {
     "shape": "rect",
-    "chords": "343,180,526,322",
+    "coords": [12.5, 15.25, 68.75, 83.5],
     "href": "node://3211e0a0-4066-43f8-8f9c-6ff48a1017e4",
+    "title": "Visit our website",
     "alt": "Website"
   },
   {
     "shape": "poly",
-    "chords": "730,139,729,311,1065,362,1066,186,942,179",
+    "coords": [21.4, 11.6, 21.3, 25.9, 31.7, 30.2, 31.8, 15.5, 28.1, 14.9],
     "href": "node://e69d08dd-d0e8-464b-8552-bf4707d4f682",
+    "title": "",
     "alt": ""
   }
 ]

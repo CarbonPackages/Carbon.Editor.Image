@@ -11,5 +11,16 @@ Neos:
           imageProperty: 'image'
           labelIfEmpty: 'Carbon.Editor.Image:Main:selectImage'
           saveAsJsonString: false
-          linkEditor: 'Neos.Neos/Inspector/Editors/LinkEditor'
-          linkEditorOptions: {}
+          areaProperties:
+            href:
+              label: 'Carbon.Editor.Image:Main:map.link'
+              editor: 'Neos.Neos/Inspector/Editors/LinkEditor'
+              editorOptions: {}
+            title:
+              label: 'Carbon.Editor.Image:Main:map.title'
+              editor: 'Neos.Neos/Inspector/Editors/TextFieldEditor'
+              editorOptions: {}
+            alt:
+              label: 'Carbon.Editor.Image:Main:map.alt'
+              editor: 'Neos.Neos/Inspector/Editors/TextFieldEditor'
+              editorOptions: {}

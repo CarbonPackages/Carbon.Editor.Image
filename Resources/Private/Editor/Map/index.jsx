@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import * as stylex from "@stylexjs/stylex";
 import backend from "@neos-project/neos-ui-backend-connector";
-import { Button, IconButton, Label, TextInput } from "@neos-project/react-ui-components";
+import { Button, Icon, Label } from "@neos-project/react-ui-components";
 import {
     Annotorious,
     ImageAnnotator,
@@ -12,6 +12,8 @@ import {
 } from "@annotorious/react";
 import { injectNeosProps, getImageIdentity, createThumbnail } from "../Helper";
 import Dialog from "carbon-neos-editor-styling/Dialog";
+import { getAreaProperties, getAreaData } from "./AreaProperties";
+import { getCoordinateSystem, toPercentCoordinates, fromPercentCoordinates } from "./Coordinates";
 
 const styles = stylex.create({
     content: {
@@ -61,16 +63,22 @@ const styles = stylex.create({
     popup: {
         display: "flex",
         flexDirection: "column",
-        gap: "var(--spacing-Half)",
         width: 320,
-        padding: "var(--spacing-Half)",
         backgroundColor: "var(--colors-ContrastDarker)",
         color: "var(--colors-ContrastBrightest)",
         boxShadow: "0 0 0 1px var(--colors-ContrastDark), 0 10px 20px #0006",
+        padding: "var(--spacing-Full)",
+        gap: "var(--spacing-Full)",
+    },
+    field: {
+        display: "flex",
+        flexDirection: "column",
     },
     popupFooter: {
         display: "flex",
-        justifyContent: "end",
+        justifyContent: "space-between",
+        gap: "var(--spacing-Quarter)",
+        paddingTop: "var(--spacing-Full)",
     },
 });
 
@@ -89,12 +97,19 @@ function parseAreas(value) {
     return Array.isArray(value) ? value : [];
 }
 
+function getAnnotatorImageSize(annotator) {
+    const { width, height } = annotator?.element.querySelector("svg")?.viewBox.baseVal ?? {};
+    return Number.isFinite(width) && width > 0 && Number.isFinite(height) && height > 0
+        ? { x: width, y: height }
+        : null;
+}
+
 // Converts an area relative to the cropped output into preview image coordinates.
-function areaToAnnotation(area, previewScale, cropOffset, index) {
-    const coords = (area.chords || "")
-        .split(",")
-        .map((part, index) => parseFloat(part) * previewScale + (index % 2 === 0 ? cropOffset.x : cropOffset.y))
-        .filter((number) => !isNaN(number));
+function areaToAnnotation(area, coordinateSystem, index) {
+    const coords = fromPercentCoordinates(
+        Array.isArray(area.coords) ? area.coords.map(Number) : [],
+        coordinateSystem,
+    ).filter((number) => !isNaN(number));
     const id = `area-${index}-${Math.random().toString(36).slice(2)}`;
 
     let selector = null;
@@ -133,26 +148,21 @@ function areaToAnnotation(area, previewScale, cropOffset, index) {
 }
 
 // Converts preview image coordinates into coordinates relative to the cropped output.
-function annotationsToAreas(annotations, areaData, previewScale, cropOffset) {
+function annotationsToAreas(annotations, areaData, coordinateSystem, areaProperties) {
     return annotations
         .map((annotation) => {
             const { selector } = annotation.target;
-            let coordinateIndex = 0;
-            const scale = (value) => {
-                const offset = coordinateIndex++ % 2 === 0 ? cropOffset.x : cropOffset.y;
-                return Math.round((value - offset) / previewScale);
-            };
             let shape = null;
             let coords = [];
 
             if (selector.type === ShapeType.RECTANGLE) {
                 const { x, y, w, h } = selector.geometry;
                 shape = "rect";
-                coords = [x, y, x + w, y + h].map(scale);
+                coords = [x, y, x + w, y + h];
             }
             if (selector.type === ShapeType.POLYGON) {
                 shape = "poly";
-                coords = selector.geometry.points.flat().map(scale);
+                coords = selector.geometry.points.flat();
             }
             if (!shape) {
                 return null;
@@ -160,17 +170,25 @@ function annotationsToAreas(annotations, areaData, previewScale, cropOffset) {
 
             const data = areaData[annotation.id] || {};
             return {
+                ...getAreaData(data, areaProperties),
                 shape,
-                chords: coords.join(","),
-                href: data.href || "",
-                alt: data.alt || "",
+                coords: toPercentCoordinates(coords, coordinateSystem),
             };
         })
         .filter(Boolean);
 }
 
-function AreaPopup({ annotation, areaData, setAreaData, onDelete, LinkEditor, linkEditorOptions, i18nRegistry }) {
-    const data = areaData[annotation.id] || { href: "", alt: "" };
+function AreaPopup({
+    annotation,
+    areaData,
+    setAreaData,
+    onDelete,
+    onClose,
+    areaProperties,
+    editorsRegistry,
+    i18nRegistry,
+}) {
+    const data = getAreaData(areaData[annotation.id], areaProperties);
     const update = (partial) =>
         setAreaData((current) => ({
             ...current,
@@ -179,27 +197,37 @@ function AreaPopup({ annotation, areaData, setAreaData, onDelete, LinkEditor, li
 
     return (
         <div {...stylex.props(styles.popup)}>
-            <Label>{i18nRegistry.translate("Carbon.Editor.Image:Main:map.link")}</Label>
-            {LinkEditor ? (
-                <LinkEditor
-                    identifier={`carbon-map-link-${annotation.id}`}
-                    value={data.href}
-                    commit={(href) => update({ href })}
-                    options={linkEditorOptions}
-                />
-            ) : (
-                <TextInput value={data.href} onChange={(href) => update({ href })} />
-            )}
-            <Label>{i18nRegistry.translate("Carbon.Editor.Image:Main:map.alt")}</Label>
-            <TextInput value={data.alt} onChange={(alt) => update({ alt })} />
+            {Object.entries(areaProperties).map(([name, definition]) => {
+                const registeredEditor = editorsRegistry.get(definition.editor);
+                const Editor = registeredEditor?.component;
+                if (!Editor) {
+                    throw new Error(`Unknown image map area editor "${definition.editor}" for "${name}".`);
+                }
+                const id = `carbon-map-${annotation.id}-${name}`;
+                const label = i18nRegistry.translate(definition.label || name);
+                return (
+                    <div {...stylex.props(styles.field)} key={name}>
+                        {!registeredEditor.hasOwnLabel && <Label htmlFor={id}>{label}</Label>}
+                        <Editor
+                            id={id}
+                            identifier={id}
+                            label={registeredEditor.hasOwnLabel ? label : undefined}
+                            value={data[name]}
+                            commit={(value) => update({ [name]: value })}
+                            options={definition.editorOptions || {}}
+                        />
+                    </div>
+                );
+            })}
             <div {...stylex.props(styles.popupFooter)}>
-                <IconButton
-                    icon="trash"
-                    style="warn"
-                    hoverStyle="warn"
-                    title={i18nRegistry.translate("Carbon.Editor.Image:Main:map.delete")}
-                    onClick={onDelete}
-                />
+                <Button hoverStyle="error" size="small" onClick={onDelete}>
+                    <Icon icon="trash" padded="right" />
+                    {i18nRegistry.translate("Carbon.Editor.Image:Main:map.delete")}
+                </Button>
+                <Button onClick={onClose} size="small">
+                    <Icon icon="times" padded="right" />
+                    {i18nRegistry.translate("Carbon.Editor.Image:Main:map.close")}
+                </Button>
             </div>
         </div>
     );
@@ -207,17 +235,18 @@ function AreaPopup({ annotation, areaData, setAreaData, onDelete, LinkEditor, li
 
 function MapDialogContent({
     image,
-    initialAnnotations,
+    initialAreas,
     thumbnail,
     annoRef,
     areaData,
     setAreaData,
-    LinkEditor,
-    linkEditorOptions,
+    areaProperties,
+    editorsRegistry,
     i18nRegistry,
 }) {
     const anno = useAnnotator();
     const [tool, setTool] = useState(null);
+    const coordinateSystem = getCoordinateSystem(thumbnail, getAnnotatorImageSize(anno));
     const imageStyle = {
         "--crop-area-width": thumbnail.styles.cropArea.width,
         "--crop-area-height": thumbnail.styles.cropArea.height,
@@ -228,11 +257,21 @@ function MapDialogContent({
     };
 
     useEffect(() => {
-        if (!anno) {
+        if (!anno || !coordinateSystem) {
             return;
         }
         annoRef.current = anno;
-        anno.setAnnotations(initialAnnotations);
+        const annotations = [];
+        const data = {};
+        initialAreas.forEach((area, index) => {
+            const annotation = areaToAnnotation(area, coordinateSystem, index);
+            if (annotation) {
+                annotations.push(annotation);
+                data[annotation.id] = getAreaData(area, areaProperties);
+            }
+        });
+        anno.setAnnotations(annotations);
+        setAreaData(data);
 
         const handleCreate = () => setTool(null);
         anno.on("createAnnotation", handleCreate);
@@ -242,7 +281,16 @@ function MapDialogContent({
             annoRef.current = null;
             anno.destroy();
         };
-    }, [anno]);
+    }, [
+        anno,
+        initialAreas,
+        coordinateSystem?.offset.x,
+        coordinateSystem?.offset.y,
+        coordinateSystem?.size.x,
+        coordinateSystem?.size.y,
+        areaProperties,
+        setAreaData,
+    ]);
 
     function toggleTool(name) {
         setTool((current) => (current === name ? null : name));
@@ -262,6 +310,7 @@ function MapDialogContent({
                     style={tool === "rectangle" ? "brand" : "lighter"}
                     onClick={() => toggleTool("rectangle")}
                 >
+                    <Icon icon="vector-square" padded="right" />
                     {i18nRegistry.translate("Carbon.Editor.Image:Main:map.rectangle")}
                 </Button>
                 <Button
@@ -269,6 +318,7 @@ function MapDialogContent({
                     style={tool === "polygon" ? "brand" : "lighter"}
                     onClick={() => toggleTool("polygon")}
                 >
+                    <Icon icon="pencil" padded="right" />
                     {i18nRegistry.translate("Carbon.Editor.Image:Main:map.polygon")}
                 </Button>
                 <span {...stylex.props(styles.hint)}>
@@ -276,10 +326,11 @@ function MapDialogContent({
                 </span>
                 <Button
                     size="small"
-                    hoverStyle="warn"
+                    hoverStyle="error"
                     onClick={deleteAllAreas}
                     className={stylex.props(styles.deleteAllButton).className}
                 >
+                    <Icon icon="trash" padded="right" />
                     {i18nRegistry.translate("Carbon.Editor.Image:Main:map.deleteAll")}
                 </Button>
             </div>
@@ -302,8 +353,9 @@ function MapDialogContent({
                         areaData={areaData}
                         setAreaData={setAreaData}
                         onDelete={() => anno.removeAnnotation(annotation.id)}
-                        LinkEditor={LinkEditor}
-                        linkEditorOptions={linkEditorOptions}
+                        onClose={() => anno.cancelSelected()}
+                        areaProperties={areaProperties}
+                        editorsRegistry={editorsRegistry}
                         i18nRegistry={i18nRegistry}
                     />
                 )}
@@ -324,10 +376,14 @@ function MapEditor({
     getNodeByContextPath,
     focusedNodePath,
 }) {
-    const { labelIfEmpty, imageProperty, saveAsJsonString, linkEditor, linkEditorOptions } = { ...config, ...options };
+    const { labelIfEmpty, imageProperty, saveAsJsonString } = { ...config, ...options };
+    const areaProperties = useMemo(
+        () => getAreaProperties(config?.areaProperties, options?.areaProperties),
+        [config?.areaProperties, options?.areaProperties],
+    );
     const [image, setImage] = useState(null);
     const [open, setOpen] = useState(false);
-    const [initialAnnotations, setInitialAnnotations] = useState([]);
+    const [initialAreas, setInitialAreas] = useState([]);
     const [areaData, setAreaData] = useState({});
     const annoRef = useRef(null);
     const imageIdentity = getImageIdentity(getNodeByContextPath, focusedNodePath, imageProperty);
@@ -355,15 +411,7 @@ function MapEditor({
         };
     }, [imageIdentity]);
 
-    const previewScale = image ? image.previewDimensions.width / image.originalDimensions.width : 1;
-    const cropOffset = thumbnail
-        ? {
-              x: -parseFloat(thumbnail.styles.thumbnail.left) / thumbnail.scalingFactor,
-              y: -parseFloat(thumbnail.styles.thumbnail.top) / thumbnail.scalingFactor,
-          }
-        : { x: 0, y: 0 };
-    const areas = parseAreas(value);
-    const LinkEditor = linkEditor ? editorsRegistry?.get(linkEditor)?.component : null;
+    const areas = useMemo(() => parseAreas(value), [value]);
 
     if (!image) {
         if (!labelIfEmpty) {
@@ -373,23 +421,18 @@ function MapEditor({
     }
 
     function openEditor() {
-        const annotations = [];
-        const data = {};
-        areas.forEach((area, index) => {
-            const annotation = areaToAnnotation(area, previewScale, cropOffset, index);
-            if (annotation) {
-                annotations.push(annotation);
-                data[annotation.id] = { href: area.href || "", alt: area.alt || "" };
-            }
-        });
-        setInitialAnnotations(annotations);
-        setAreaData(data);
+        setInitialAreas(areas);
+        setAreaData({});
         setOpen(true);
     }
 
     function applyChanges() {
-        const annotations = annoRef.current ? annoRef.current.getAnnotations() : [];
-        const result = annotationsToAreas(annotations, areaData, previewScale, cropOffset);
+        const coordinateSystem = getCoordinateSystem(thumbnail, getAnnotatorImageSize(annoRef.current));
+        if (!coordinateSystem) {
+            throw new Error("Cannot save image map before the image dimensions are available.");
+        }
+        const annotations = annoRef.current.getAnnotations();
+        const result = annotationsToAreas(annotations, areaData, coordinateSystem, areaProperties);
         commit(saveAsJsonString ? JSON.stringify(result) : result);
         setOpen(false);
     }
@@ -412,13 +455,13 @@ function MapEditor({
                     <Annotorious>
                         <MapDialogContent
                             image={image}
-                            initialAnnotations={initialAnnotations}
+                            initialAreas={initialAreas}
                             thumbnail={thumbnail}
                             annoRef={annoRef}
                             areaData={areaData}
                             setAreaData={setAreaData}
-                            LinkEditor={LinkEditor}
-                            linkEditorOptions={linkEditorOptions}
+                            areaProperties={areaProperties}
+                            editorsRegistry={editorsRegistry}
                             i18nRegistry={i18nRegistry}
                         />
                     </Annotorious>
