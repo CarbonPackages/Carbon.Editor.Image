@@ -38,6 +38,10 @@
                 <source>Remove area</source>
                 <target>Fläche entfernen</target>
             </trans-unit>
+            <trans-unit id="map.deleteAll" xml:space="preserve">
+                <source>Delete all areas</source>
+                <target>Alle Flächen löschen</target>
+            </trans-unit>
         </body>
     </file>
 </xliff>

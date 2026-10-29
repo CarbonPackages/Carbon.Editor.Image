@@ -29,6 +29,9 @@
             <trans-unit id="map.delete" xml:space="preserve">
                 <source>Remove area</source>
             </trans-unit>
+            <trans-unit id="map.deleteAll" xml:space="preserve">
+                <source>Delete all areas</source>
+            </trans-unit>
         </body>
     </file>
 </xliff>

@@ -40,6 +40,9 @@ const styles = stylex.create({
         display: "block",
         maxWidth: "100%",
     },
+    deleteAllButton: {
+        marginLeft: "auto",
+    },
     popup: {
         display: "flex",
         flexDirection: "column",
@@ -219,6 +222,12 @@ function MapDialogContent({
         setTool((current) => (current === name ? null : name));
     }
 
+    function deleteAllAreas() {
+        anno.getAnnotations().forEach(({ id }) => anno.removeAnnotation(id));
+        setAreaData({});
+        setTool(null);
+    }
+
     return (
         <div {...stylex.props(styles.content)}>
             <div {...stylex.props(styles.toolbar)}>
@@ -239,6 +248,9 @@ function MapDialogContent({
                 <span {...stylex.props(styles.hint)}>
                     {i18nRegistry.translate("Carbon.Editor.Image:Main:map.hint")}
                 </span>
+                <Button size="small" hoverStyle="warn" onClick={deleteAllAreas} className={stylex.props(styles.deleteAllButton).className}>
+                    {i18nRegistry.translate("Carbon.Editor.Image:Main:map.deleteAll")}
+                </Button>
             </div>
             <div {...stylex.props(styles.imageWrapper)}>
                 <ImageAnnotator
