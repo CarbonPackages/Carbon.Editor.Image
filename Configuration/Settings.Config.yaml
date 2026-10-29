@@ -1,0 +1,15 @@
+Neos:
+  Neos:
+    Ui:
+      frontendConfiguration:
+        'Carbon.Editor.Image.FocalPoint':
+          imageProperty: 'image'
+          labelIfEmpty: 'Carbon.Editor.Image:Main:selectImage'
+          saveAsJsonString: false
+          openInDialog: true
+        'Carbon.Editor.Image.Map':
+          imageProperty: 'image'
+          labelIfEmpty: 'Carbon.Editor.Image:Main:selectImage'
+          saveAsJsonString: false
+          linkEditor: 'Neos.Neos/Inspector/Editors/LinkEditor'
+          linkEditorOptions: {}

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2">
+    <file original="" product-name="Carbon.Editor.Image" source-language="en" target-language="de" datatype="plaintext">
+        <body>
+            <trans-unit id="selectImage" xml:space="preserve">
+                <source>Select image</source>
+                <target>Bild wählen</target>
+            </trans-unit>
+            <trans-unit id="focalPoint.edit" xml:space="preserve">
+                <source>Edit focal point</source>
+                <target>Fokuspunkt bearbeiten</target>
+            </trans-unit>
+            <trans-unit id="map.edit" xml:space="preserve">
+                <source>Edit image map</source>
+                <target>Image-Map bearbeiten</target>
+            </trans-unit>
+            <trans-unit id="map.rectangle" xml:space="preserve">
+                <source>Rectangle</source>
+                <target>Rechteck</target>
+            </trans-unit>
+            <trans-unit id="map.polygon" xml:space="preserve">
+                <source>Polygon</source>
+                <target>Polygon</target>
+            </trans-unit>
+            <trans-unit id="map.hint" xml:space="preserve">
+                <source>Choose a tool and draw on the image. Click an area to edit it.</source>
+                <target>Werkzeug wählen und auf dem Bild zeichnen. Fläche anklicken, um sie zu bearbeiten.</target>
+            </trans-unit>
+            <trans-unit id="map.link" xml:space="preserve">
+                <source>Link</source>
+                <target>Link</target>
+            </trans-unit>
+            <trans-unit id="map.alt" xml:space="preserve">
+                <source>Alternative text</source>
+                <target>Alternativtext</target>
+            </trans-unit>
+            <trans-unit id="map.delete" xml:space="preserve">
+                <source>Remove area</source>
+                <target>Fläche entfernen</target>
+            </trans-unit>
+        </body>
+    </file>
+</xliff>

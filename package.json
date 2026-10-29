@@ -1,0 +1,32 @@
+{
+  "name": "carbon-neos-editor-image",
+  "description": "Image focal point and map editor for Neos CMS",
+  "license": "GPL-3.0",
+  "author": "Jon Uhlmann",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/CarbonPackages/Carbon.Editor.Image.git"
+  },
+  "scripts": {
+    "build": "node build.js",
+    "watch": "node build.js --watch",
+    "dev": "node build.js --dev",
+    "pipeline": "pnpm  install --silent;pnpm build"
+  },
+  "dependencies": {
+    "@annotorious/react": "^3.9.5",
+    "@lemoncode/react-image-focal-point": "^1.0.0",
+    "@stylexjs/stylex": "^0.19.1",
+    "carbon-neos-editor-styling": "^0.1.21",
+    "carbon-neos-loadinganimation": "^1.2.1"
+  },
+  "devDependencies": {
+    "@neos-project/neos-ui-extensibility": "~8.4.4",
+    "@stylexjs/unplugin": "^0.19.1",
+    "esbuild": "^0.28.2",
+    "prettier": "^3.9.10"
+  },
+  "peerDependencies": {
+    "@neos-project/neos-ui-extensibility": "^8.4.0 || ^9.0.0"
+  }
+}

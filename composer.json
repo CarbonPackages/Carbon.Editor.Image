@@ -1,0 +1,14 @@
+{
+    "name" : "carbon/editor-image",
+    "description": "Image focal point and map editor for Neos CMS",
+    "type" : "neos-carbon",
+    "license": "GPL-3.0",
+    "require": {
+        "neos/neos-ui": "^8.3 || ^9.0"
+    },
+    "autoload" : {
+      "psr-4" : {
+        "Carbon\\Editor\\Image\\" : "Classes/"
+      }
+    }
+  }
