@@ -130,7 +130,7 @@ names are reserved. Disabled and unconfigured fields are not saved when applying
 
 ## Stored data format
 
-### FocalPoint
+### FocalPoint data
 
 The focal point is stored as `x` and `y` coordinates, expressed as percentages of the image dimensions:
 
@@ -141,7 +141,7 @@ The focal point is stored as `x` and `y` coordinates, expressed as percentages o
 }
 ```
 
-### Map
+### Map data
 
 The image map is stored as an array of areas. `shape` is either `rect` or `poly`, `coords` is an array of alternating
 `x` and `y` floating-point percentages relative to the cropped output image (from `0` to `100`). The remaining fields
