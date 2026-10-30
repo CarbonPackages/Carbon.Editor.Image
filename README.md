@@ -169,3 +169,38 @@ the cropped height, independently of the preview size.
 
 These examples show the native values. When `saveAsJsonString` is `true`, the same data is stored as a JSON-encoded
 string instead.
+
+## Creating responsive image map areas
+
+Use [`createAreas`](Resources/Private/Assets/createAreas.ts) whenever creating the frontend `<area>` elements and
+whenever the displayed image changes size. Stored coordinates are percentages; HTML image maps require pixel
+coordinates based on the image's current displayed width and height, not its natural dimensions.
+
+`createAreas(map, imageWidth, imageHeight, areas)` converts the coordinates to rounded pixel values and replaces all
+existing areas in the `<map>`. It also copies the remaining area properties, such as `href`, `title` and `alt`, to HTML
+attributes.
+
+For example, after importing `createAreas` into your frontend bundle:
+
+```typescript
+const image = document.querySelector<HTMLImageElement>("#mapped-image")!;
+const map = document.querySelector<HTMLMapElement>("#image-map")!;
+// `areas` contains the stored percentage-based data, parsed from JSON if necessary.
+const updateAreas = () => createAreas(map, image.clientWidth, image.clientHeight, areas);
+
+image.addEventListener("load", updateAreas);
+const observer = new ResizeObserver(updateAreas);
+observer.observe(image);
+if (image.complete) {
+    updateAreas();
+}
+
+// When removing the image/component:
+// image.removeEventListener("load", updateAreas);
+// observer.disconnect();
+```
+
+Connect the image and map using `<img id="mapped-image" usemap="#image-map" ...>` and
+`<map id="image-map" name="image-map"></map>`. The image must display the same cropped output used when defining the
+areas. Resolve Neos `node://` links to frontend URLs before calling `createAreas`, and pass only trusted,
+HTML-attribute-safe property names and values because the function inserts them directly into HTML.
