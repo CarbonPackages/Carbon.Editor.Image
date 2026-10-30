@@ -25,6 +25,11 @@ const styles = stylex.create({
         left: "var(--thumbnail-left, 0)",
         top: "var(--thumbnail-top, 0)",
     },
+    highlight: {
+        borderRadius: 2,
+        outline: "2px solid var(--colors-Warn)",
+        outlineOffset: 2,
+    },
 });
 
 const classes = {
@@ -42,6 +47,7 @@ function FocalPointEditor({
     id,
     getNodeByContextPath,
     focusedNodePath,
+    highlight,
 }) {
     const { labelIfEmpty, imageProperty, saveAsJsonString } = { ...config, ...options };
     const [open, setOpen] = useState(false);
@@ -85,7 +91,11 @@ function FocalPointEditor({
 
     return (
         <>
-            <Button id={id} onClick={openEditor}>
+            <Button
+                id={id}
+                onClick={openEditor}
+                className={highlight ? stylex.props(styles.highlight).className : undefined}
+            >
                 {i18nRegistry.translate(label || "Carbon.Editor.Image:Main:focalPoint.edit")}
             </Button>
             <Dialog

@@ -72,6 +72,11 @@ const styles = stylex.create({
         gap: "var(--spacing-Quarter)",
         paddingTop: "var(--spacing-Full)",
     },
+    highlight: {
+        borderRadius: 2,
+        outline: "2px solid var(--colors-Warn)",
+        outlineOffset: 2,
+    },
 });
 
 function parseAreas(value) {
@@ -367,6 +372,7 @@ function MapEditor({
     id,
     getNodeByContextPath,
     focusedNodePath,
+    highlight,
 }) {
     const { labelIfEmpty, imageProperty, saveAsJsonString } = { ...config, ...options };
     const areaProperties = useMemo(
@@ -418,7 +424,11 @@ function MapEditor({
 
     return (
         <>
-            <Button id={id} onClick={openEditor}>
+            <Button
+                id={id}
+                onClick={openEditor}
+                className={highlight ? stylex.props(styles.highlight).className : undefined}
+            >
                 {i18nRegistry.translate(label || "Carbon.Editor.Image:Main:map.edit")}
                 {areas.length > 0 && ` (${areas.length})`}
             </Button>
