@@ -6,7 +6,6 @@ Neos:
           imageProperty: 'image'
           labelIfEmpty: 'Carbon.Editor.Image:Main:selectImage'
           saveAsJsonString: false
-          openInDialog: true
         'Carbon.Editor.Image.Map':
           imageProperty: 'image'
           labelIfEmpty: 'Carbon.Editor.Image:Main:selectImage'

@@ -9,7 +9,9 @@ The FocalPoint editor was inspired by
 [Neos.ImageFocalPointEditor](https://github.com/jvm-tech/Neos.ImageFocalPointEditor/).
 
 Both editors use the image selected in the configured image property. By default, they look for an `image` property on
-the current node.
+the current node. Dialog previews scale proportionally to fit the available width and height, including SVGs without
+dimension metadata. SVG previews are also enlarged to use the available dialog space; raster previews are only scaled
+down. The configured image crop is preserved; resizing the preview does not change saved coordinates.
 
 ## Installation
 
@@ -43,7 +45,8 @@ Vendor.Site:Content.Image:
 ### FocalPoint
 
 The FocalPoint editor displays the selected image and lets editors set its focal point. The value is stored as an object
-with `x` and `y` coordinates.
+with `x` and `y` coordinates. The editor always opens in a modal dialog. Changes are saved with Apply and discarded with
+Cancel.
 
 ### Map
 
@@ -64,7 +67,6 @@ Neos:
           imageProperty: "image"
           labelIfEmpty: "Carbon.Editor.Image:Main:selectImage"
           saveAsJsonString: false
-          openInDialog: true
         "Carbon.Editor.Image.Map":
           imageProperty: "image"
           labelIfEmpty: "Carbon.Editor.Image:Main:selectImage"
@@ -89,13 +91,12 @@ instance.
 
 Available options:
 
-| Option             | Description                                                                                                                                                                    |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `imageProperty`    | Name of the image property used by the editor. Defaults to `image`. Use `parent:propertyName` to read the image from the parent node.                                          |
-| `labelIfEmpty`     | Text or translation key displayed when no image is selected. Set it to `null` to hide the editor output in that case.                                                          |
-| `saveAsJsonString` | When `true`, stores the value as a JSON string; the Neos property must then have `type: string`. When `false`, the value is stored as a native value, so use `type: array`.    |
-| `openInDialog`     | FocalPoint editor only. When `true`, opens the focal point editor in a dialog like the Map editor. Changes are saved with Apply and discarded with Cancel. Defaults to `true`. |
-| `areaProperties`   | Map editor only. Named fields for each area, with a `label`, Neos `editor` identifier and `editorOptions`. Set a field to `null` to omit it from the popup and saved data.     |
+| Option             | Description                                                                                                                                                                 |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `imageProperty`    | Name of the image property used by the editor. Defaults to `image`. Use `parent:propertyName` to read the image from the parent node.                                       |
+| `labelIfEmpty`     | Text or translation key displayed when no image is selected. Set it to `null` to hide the editor output in that case.                                                       |
+| `saveAsJsonString` | When `true`, stores the value as a JSON string; the Neos property must then have `type: string`. When `false`, the value is stored as a native value, so use `type: array`. |
+| `areaProperties`   | Map editor only. Named fields for each area, with a `label`, Neos `editor` identifier and `editorOptions`. Set a field to `null` to omit it from the popup and saved data.  |
 
 For example, to use a different image property only for one focal point field:
 
@@ -173,8 +174,8 @@ string instead.
 ## Creating responsive image map areas
 
 Use [`createAreas`](Resources/Private/Assets/createAreas.ts) whenever creating the frontend `<area>` elements and
-whenever the displayed image changes size. Stored coordinates are percentages; HTML image maps require pixel
-coordinates based on the image's current displayed width and height, not its natural dimensions.
+whenever the displayed image changes size. Stored coordinates are percentages; HTML image maps require pixel coordinates
+based on the image's current displayed width and height, not its natural dimensions.
 
 `createAreas(map, imageWidth, imageHeight, areas)` converts the coordinates to rounded pixel values and replaces all
 existing areas in the `<map>`. It also copies the remaining area properties, such as `href`, `title` and `alt`, to HTML
@@ -192,7 +193,7 @@ image.addEventListener("load", updateAreas);
 const observer = new ResizeObserver(updateAreas);
 observer.observe(image);
 if (image.complete) {
-    updateAreas();
+  updateAreas();
 }
 
 // When removing the image/component:

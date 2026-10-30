@@ -2,6 +2,8 @@ import { injectNeosProps } from "./Neos";
 import { createThumbnail } from "./Thumbnail";
 
 export { injectNeosProps, createThumbnail };
+export { useImageMetadata } from "./useImageMetadata";
+export { default as ImagePreview } from "./ImagePreview";
 
 export function getImageIdentity(getNodeByContextPath, nodeContextPath, imageProperty) {
     let node = getNodeByContextPath(nodeContextPath);

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import * as stylex from "@stylexjs/stylex";
-import backend from "@neos-project/neos-ui-backend-connector";
 import { Button, Icon, Label } from "@neos-project/react-ui-components";
 import {
     Annotorious,
@@ -10,7 +9,7 @@ import {
     boundsFromPoints,
     ShapeType,
 } from "@annotorious/react";
-import { injectNeosProps, getImageIdentity, createThumbnail } from "../Helper";
+import { injectNeosProps, getImageIdentity, createThumbnail, useImageMetadata, ImagePreview } from "../Helper";
 import Dialog from "carbon-neos-editor-styling/Dialog";
 import { getAreaProperties, getAreaData } from "./AreaProperties";
 import { getCoordinateSystem, toPercentCoordinates, fromPercentCoordinates } from "./Coordinates";
@@ -31,13 +30,6 @@ const styles = stylex.create({
     hint: {
         fontSize: 12,
         color: "var(--colors-ContrastBright)",
-    },
-    imageWrapper: {
-        display: "flex",
-        justifyContent: "center",
-        backgroundColor: "black",
-        padding: 13,
-        overflow: "clip",
     },
     imageViewport: {
         position: "relative",
@@ -97,11 +89,14 @@ function parseAreas(value) {
     return Array.isArray(value) ? value : [];
 }
 
-function getAnnotatorImageSize(annotator) {
-    const { width, height } = annotator?.element.querySelector("svg")?.viewBox.baseVal ?? {};
-    return Number.isFinite(width) && width > 0 && Number.isFinite(height) && height > 0
-        ? { x: width, y: height }
-        : null;
+function getAnnotatorImageSize(annotator, fallbackSize) {
+    const svg = annotator?.element.querySelector("svg");
+    const viewBox = svg?.viewBox.baseVal;
+    if (viewBox?.width > 0 && viewBox?.height > 0) {
+        return { x: viewBox.width, y: viewBox.height };
+    }
+
+    return fallbackSize;
 }
 
 // Converts an area relative to the cropped output into preview image coordinates.
@@ -246,15 +241,13 @@ function MapDialogContent({
 }) {
     const anno = useAnnotator();
     const [tool, setTool] = useState(null);
-    const coordinateSystem = getCoordinateSystem(thumbnail, getAnnotatorImageSize(anno));
-    const imageStyle = {
-        "--crop-area-width": thumbnail.styles.cropArea.width,
-        "--crop-area-height": thumbnail.styles.cropArea.height,
-        "--thumbnail-width": thumbnail.styles.thumbnail.width,
-        "--thumbnail-height": thumbnail.styles.thumbnail.height,
-        "--thumbnail-left": thumbnail.styles.thumbnail.left,
-        "--thumbnail-top": thumbnail.styles.thumbnail.top,
-    };
+    const fallbackImageSize = thumbnail.hasDimensions
+        ? {
+              x: image.previewDimensions.width,
+              y: image.previewDimensions.height,
+          }
+        : null;
+    const coordinateSystem = getCoordinateSystem(thumbnail, getAnnotatorImageSize(anno, fallbackImageSize));
 
     useEffect(() => {
         if (!anno || !coordinateSystem) {
@@ -279,7 +272,6 @@ function MapDialogContent({
         return () => {
             anno.off("createAnnotation", handleCreate);
             annoRef.current = null;
-            anno.destroy();
         };
     }, [
         anno,
@@ -334,8 +326,8 @@ function MapDialogContent({
                     {i18nRegistry.translate("Carbon.Editor.Image:Main:map.deleteAll")}
                 </Button>
             </div>
-            <div {...stylex.props(styles.imageWrapper)}>
-                <div {...stylex.props(styles.imageViewport)} style={imageStyle}>
+            <ImagePreview thumbnail={thumbnail}>
+                <div {...stylex.props(styles.imageViewport)}>
                     <ImageAnnotator
                         containerClassName={stylex.props(styles.annotator).className}
                         tool={tool || undefined}
@@ -345,7 +337,7 @@ function MapDialogContent({
                         <img src={image.previewImageResourceUri} alt="" {...stylex.props(styles.image)} />
                     </ImageAnnotator>
                 </div>
-            </div>
+            </ImagePreview>
             <ImageAnnotationPopup
                 popup={({ annotation }) => (
                     <AreaPopup
@@ -381,35 +373,16 @@ function MapEditor({
         () => getAreaProperties(config?.areaProperties, options?.areaProperties),
         [config?.areaProperties, options?.areaProperties],
     );
-    const [image, setImage] = useState(null);
     const [open, setOpen] = useState(false);
     const [initialAreas, setInitialAreas] = useState([]);
     const [areaData, setAreaData] = useState({});
     const annoRef = useRef(null);
     const imageIdentity = getImageIdentity(getNodeByContextPath, focusedNodePath, imageProperty);
+    const image = useImageMetadata(imageIdentity);
     const thumbnail = useMemo(
         () => (image ? createThumbnail(image, image.previewDimensions.width, image.previewDimensions.height) : null),
         [image],
     );
-
-    useEffect(() => {
-        if (!imageIdentity) {
-            setImage(null);
-            return;
-        }
-
-        let cancelled = false;
-        const { loadImageMetadata } = backend.get().endpoints;
-        loadImageMetadata(imageIdentity).then((metadata) => {
-            if (!cancelled) {
-                setImage(metadata);
-            }
-        });
-
-        return () => {
-            cancelled = true;
-        };
-    }, [imageIdentity]);
 
     const areas = useMemo(() => parseAreas(value), [value]);
 
@@ -427,8 +400,14 @@ function MapEditor({
     }
 
     function applyChanges() {
-        const coordinateSystem = getCoordinateSystem(thumbnail, getAnnotatorImageSize(annoRef.current));
-        if (!coordinateSystem) {
+        const coordinateSystem = getCoordinateSystem(
+            thumbnail,
+            getAnnotatorImageSize(annoRef.current, {
+                x: image.previewDimensions.width,
+                y: image.previewDimensions.height,
+            }),
+        );
+        if (!annoRef.current || !coordinateSystem) {
             throw new Error("Cannot save image map before the image dimensions are available.");
         }
         const annotations = annoRef.current.getAnnotations();
@@ -450,6 +429,7 @@ function MapEditor({
                 title={i18nRegistry.translate(label || "Carbon.Editor.Image:Main:map.edit")}
                 onApply={applyChanges}
                 onCancel={() => setOpen(false)}
+                showCloseButton
             >
                 {open && (
                     <Annotorious>
