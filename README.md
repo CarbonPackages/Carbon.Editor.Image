@@ -50,8 +50,10 @@ Cancel.
 
 ### Map
 
-The Map editor opens an image annotation dialog where editors can create and edit clickable areas. Each area can have a
-link and alternative text. The editor saves the areas to the property.
+The Map editor opens an image annotation dialog where editors can create and edit clickable rectangles, circles and
+polygons. Circles are drawn from their center outward and always keep a circular shape; while editing, the handles
+change the radius around the fixed center. Each area can have a link and alternative text. The editor saves the areas to
+the property.
 
 ## Global configuration
 
@@ -146,10 +148,11 @@ The focal point is stored as `x` and `y` coordinates, expressed as percentages o
 
 ### Map data
 
-The image map is stored as an array of areas. `shape` is either `rect` or `poly`, `coords` is an array of alternating
+The image map is stored as an array of areas. `shape` is `rect`, `circle` or `poly`, `coords` is an array of alternating
 `x` and `y` floating-point percentages relative to the cropped output image (from `0` to `100`). The remaining fields
 come from `areaProperties`, such as `href`, `title` and `alt`. X values are relative to the cropped width, Y values to
-the cropped height, independently of the preview size.
+the cropped height, independently of the preview size. Circles are stored as `[centerX, centerY, radius]`; the radius is
+a percentage of the cropped width, like the X values.
 
 ```json
 [
@@ -159,6 +162,13 @@ the cropped height, independently of the preview size.
     "href": "node://3211e0a0-4066-43f8-8f9c-6ff48a1017e4",
     "title": "Visit our website",
     "alt": "Website"
+  },
+  {
+    "shape": "circle",
+    "coords": [75, 40, 10],
+    "href": "https://www.neos.io",
+    "title": "Neos",
+    "alt": "Neos"
   },
   {
     "shape": "poly",

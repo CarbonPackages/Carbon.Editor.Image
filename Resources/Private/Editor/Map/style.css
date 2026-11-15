@@ -2,3 +2,11 @@
     .a9s-rotation-handle-group {
     display: none;
 }
+
+.a9s-handle.carbon-image-map-circle-handle-vertical {
+    cursor: ns-resize;
+}
+
+.a9s-handle.carbon-image-map-circle-handle-horizontal {
+    cursor: ew-resize;
+}

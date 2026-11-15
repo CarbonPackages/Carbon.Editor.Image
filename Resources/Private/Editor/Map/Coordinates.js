@@ -32,3 +32,12 @@ export function fromPercentCoordinates(coords, { offset, size }) {
         return (value * size[axis]) / 100 + offset[axis];
     });
 }
+
+// Circle radii are relative to the cropped width, like the x coordinates of HTML image maps.
+export function toPercentCircleCoordinates([cx, cy, r], coordinateSystem) {
+    return [...toPercentCoordinates([cx, cy], coordinateSystem), (r / coordinateSystem.size.x) * 100];
+}
+
+export function fromPercentCircleCoordinates([cx, cy, r], coordinateSystem) {
+    return [...fromPercentCoordinates([cx, cy], coordinateSystem), (r * coordinateSystem.size.x) / 100];
+}

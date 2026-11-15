@@ -4,6 +4,8 @@ import {
     getCoordinateSystem,
     toPercentCoordinates,
     fromPercentCoordinates,
+    toPercentCircleCoordinates,
+    fromPercentCircleCoordinates,
 } from "./Coordinates.js";
 import { createThumbnail } from "../Helper/Thumbnail.js";
 
@@ -95,4 +97,20 @@ test("handles dimensionless SVGs without mixing metadata and viewBox dimensions"
         [120, 75, 1080, 225],
     );
     assert.equal(getCoordinateSystem({ hasDimensions: false }, null), null);
+});
+
+test("converts circle radii relative to the cropped width without applying the crop offset", () => {
+    const thumbnail = {
+        hasDimensions: true,
+        dimensions: { width: 800, height: 400 },
+        cropDimensions: { width: 400, height: 200 },
+        styles: { thumbnail: { left: "-200px", top: "-100px" } },
+    };
+    const system = getCoordinateSystem(thumbnail, { x: 1600, y: 800 });
+    const circle = [800, 400, 200];
+    assert.deepEqual(toPercentCircleCoordinates(circle, system), [50, 50, 25]);
+    assert.deepEqual(
+        fromPercentCircleCoordinates([50, 50, 25], system),
+        circle,
+    );
 });

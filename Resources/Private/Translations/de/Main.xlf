@@ -18,6 +18,10 @@
                 <source>Rectangle</source>
                 <target>Rechteck</target>
             </trans-unit>
+            <trans-unit id="map.circle" xml:space="preserve">
+                <source>Circle</source>
+                <target>Kreis</target>
+            </trans-unit>
             <trans-unit id="map.polygon" xml:space="preserve">
                 <source>Polygon</source>
                 <target>Polygon</target>

@@ -14,6 +14,9 @@
             <trans-unit id="map.rectangle" xml:space="preserve">
                 <source>Rectangle</source>
             </trans-unit>
+            <trans-unit id="map.circle" xml:space="preserve">
+                <source>Circle</source>
+            </trans-unit>
             <trans-unit id="map.polygon" xml:space="preserve">
                 <source>Polygon</source>
             </trans-unit>

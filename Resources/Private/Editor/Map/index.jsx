@@ -3,6 +3,7 @@ import * as stylex from "@stylexjs/stylex";
 import { Button, Icon, Label } from "@neos-project/react-ui-components";
 import {
     Annotorious,
+    AnnotoriousPlugin,
     ImageAnnotator,
     ImageAnnotationPopup,
     useAnnotator,
@@ -12,7 +13,14 @@ import {
 import { injectNeosProps, getImageIdentity, createThumbnail, useImageMetadata, ImagePreview } from "../Helper";
 import Dialog from "carbon-neos-editor-styling/Dialog";
 import { getAreaProperties, getAreaData } from "./AreaProperties";
-import { getCoordinateSystem, toPercentCoordinates, fromPercentCoordinates } from "./Coordinates";
+import {
+    getCoordinateSystem,
+    toPercentCoordinates,
+    fromPercentCoordinates,
+    toPercentCircleCoordinates,
+    fromPercentCircleCoordinates,
+} from "./Coordinates";
+import { createCircleShape, registerCircleTool } from "./CircleTool";
 
 const styles = stylex.create({
     content: {
@@ -106,13 +114,19 @@ function getAnnotatorImageSize(annotator, fallbackSize) {
 
 // Converts an area relative to the cropped output into preview image coordinates.
 function areaToAnnotation(area, coordinateSystem, index) {
-    const coords = fromPercentCoordinates(
-        Array.isArray(area.coords) ? area.coords.map(Number) : [],
-        coordinateSystem,
+    const values = Array.isArray(area.coords) ? area.coords.map(Number) : [];
+    const coords = (
+        area.shape === "circle"
+            ? fromPercentCircleCoordinates(values, coordinateSystem)
+            : fromPercentCoordinates(values, coordinateSystem)
     ).filter((number) => !isNaN(number));
     const id = `area-${index}-${Math.random().toString(36).slice(2)}`;
 
     let selector = null;
+    if (area.shape === "circle" && coords.length === 3 && coords[2] > 0) {
+        const [cx, cy, r] = coords;
+        selector = createCircleShape(cx, cy, r);
+    }
     if (area.shape === "rect" && coords.length >= 4) {
         const [x1, y1, x2, y2] = coords;
         selector = {
@@ -164,6 +178,11 @@ function annotationsToAreas(annotations, areaData, coordinateSystem, areaPropert
                 shape = "poly";
                 coords = selector.geometry.points.flat();
             }
+            if (selector.type === ShapeType.ELLIPSE) {
+                const { cx, cy, rx } = selector.geometry;
+                shape = "circle";
+                coords = [cx, cy, rx];
+            }
             if (!shape) {
                 return null;
             }
@@ -172,7 +191,10 @@ function annotationsToAreas(annotations, areaData, coordinateSystem, areaPropert
             return {
                 ...getAreaData(data, areaProperties),
                 shape,
-                coords: toPercentCoordinates(coords, coordinateSystem),
+                coords:
+                    shape === "circle"
+                        ? toPercentCircleCoordinates(coords, coordinateSystem)
+                        : toPercentCoordinates(coords, coordinateSystem),
             };
         })
         .filter(Boolean);
@@ -313,6 +335,14 @@ function MapDialogContent({
                 </Button>
                 <Button
                     size="small"
+                    style={tool === "circle" ? "brand" : "lighter"}
+                    onClick={() => toggleTool("circle")}
+                >
+                    <Icon icon="far fa-circle" padded="right" />
+                    {i18nRegistry.translate("Carbon.Editor.Image:Main:map.circle")}
+                </Button>
+                <Button
+                    size="small"
                     style={tool === "polygon" ? "brand" : "lighter"}
                     onClick={() => toggleTool("polygon")}
                 >
@@ -447,6 +477,7 @@ function MapEditor({
             >
                 {open && (
                     <Annotorious>
+                        <AnnotoriousPlugin plugin={registerCircleTool} />
                         <MapDialogContent
                             image={image}
                             initialAreas={initialAreas}
