@@ -3,6 +3,7 @@ import React, { Suspense, lazy } from "react";
 import LoadingAnimation from "carbon-neos-loadinganimation/LoadingWithStyleX";
 import "@lemoncode/react-image-focal-point/style.css";
 import "@annotorious/react/annotorious-react.css";
+import "./Map/style.css";
 
 const editors = {
     FocalPoint: () => import("./FocalPoint"),

@@ -10,6 +10,7 @@ Neos:
           imageProperty: 'image'
           labelIfEmpty: 'Carbon.Editor.Image:Main:selectImage'
           saveAsJsonString: false
+          disableRectangleRotation: true
           areaProperties:
             href:
               label: 'Carbon.Editor.Image:Main:map.link'

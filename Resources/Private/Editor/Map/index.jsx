@@ -241,6 +241,7 @@ function MapDialogContent({
     areaData,
     setAreaData,
     areaProperties,
+    disableRectangleRotation,
     editorsRegistry,
     i18nRegistry,
 }) {
@@ -332,7 +333,10 @@ function MapDialogContent({
                 </Button>
             </div>
             <ImagePreview thumbnail={thumbnail}>
-                <div {...stylex.props(styles.imageViewport)}>
+                <div
+                    {...stylex.props(styles.imageViewport)}
+                    data-carbon-image-map-disable-rectangle-rotation={disableRectangleRotation}
+                >
                     <ImageAnnotator
                         containerClassName={stylex.props(styles.annotator).className}
                         tool={tool || undefined}
@@ -374,7 +378,7 @@ function MapEditor({
     focusedNodePath,
     highlight,
 }) {
-    const { labelIfEmpty, imageProperty, saveAsJsonString } = { ...config, ...options };
+    const { labelIfEmpty, imageProperty, saveAsJsonString, disableRectangleRotation } = { ...config, ...options };
     const areaProperties = useMemo(
         () => getAreaProperties(config?.areaProperties, options?.areaProperties),
         [config?.areaProperties, options?.areaProperties],
@@ -451,6 +455,7 @@ function MapEditor({
                             areaData={areaData}
                             setAreaData={setAreaData}
                             areaProperties={areaProperties}
+                            disableRectangleRotation={disableRectangleRotation}
                             editorsRegistry={editorsRegistry}
                             i18nRegistry={i18nRegistry}
                         />
