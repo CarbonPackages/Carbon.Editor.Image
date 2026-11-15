@@ -71,6 +71,7 @@ Neos:
           imageProperty: "image"
           labelIfEmpty: "Carbon.Editor.Image:Main:selectImage"
           saveAsJsonString: false
+          disableRectangleRotation: true
           areaProperties:
             href:
               label: "Carbon.Editor.Image:Main:map.link"
@@ -91,12 +92,13 @@ instance.
 
 Available options:
 
-| Option             | Description                                                                                                                                                                 |
-| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `imageProperty`    | Name of the image property used by the editor. Defaults to `image`. Use `parent:propertyName` to read the image from the parent node.                                       |
-| `labelIfEmpty`     | Text or translation key displayed when no image is selected. Set it to `null` to hide the editor output in that case.                                                       |
-| `saveAsJsonString` | When `true`, stores the value as a JSON string; the Neos property must then have `type: string`. When `false`, the value is stored as a native value, so use `type: array`. |
-| `areaProperties`   | Map editor only. Named fields for each area, with a `label`, Neos `editor` identifier and `editorOptions`. Set a field to `null` to omit it from the popup and saved data.  |
+| Option                     | Description                                                                                                                                                                       |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `imageProperty`            | Name of the image property used by the editor. Defaults to `image`. Use `parent:propertyName` to read the image from the parent node.                                             |
+| `labelIfEmpty`             | Text or translation key displayed when no image is selected. Set it to `null` to hide the editor output in that case.                                                             |
+| `saveAsJsonString`         | When `true`, stores the value as a JSON string; the Neos property must then have `type: string`. When `false`, the value is stored as a native value, so use `type: array`.       |
+| `areaProperties`           | Map editor only. Named fields for each area, with a `label`, Neos `editor` identifier and `editorOptions`. Set a field to `null` to omit it from the popup and saved data.        |
+| `disableRectangleRotation` | Map editor only. When `true` (the default), hides the rectangle rotation handle and prevents user rotation. Moving and resizing remain enabled. Set to `false` to allow rotation. |
 
 For example, to use a different image property only for one focal point field:
 
