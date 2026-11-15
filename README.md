@@ -48,12 +48,16 @@ The FocalPoint editor displays the selected image and lets editors set its focal
 with `x` and `y` coordinates. The editor always opens in a modal dialog. Changes are saved with Apply and discarded with
 Cancel.
 
+![Edit focal point](https://github.com/user-attachments/assets/999be9cd-e475-43dc-805b-b87876874492)
+
 ### Map
 
 The Map editor opens an image annotation dialog where editors can create and edit clickable rectangles, circles and
 polygons. Circles are drawn from their center outward and always keep a circular shape; while editing, the handles
 change the radius around the fixed center. Each area can have a link and alternative text. The editor saves the areas to
 the property.
+
+![Edit image map](https://github.com/user-attachments/assets/7e86d2ab-d6a4-4863-ab46-6355516401e0)
 
 ## Global configuration
 
